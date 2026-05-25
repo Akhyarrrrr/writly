@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import TiptapEditor from '@/components/editor/TiptapEditor'
 import { toast } from 'sonner'
+import { findOrCreateCategory } from '@/lib/categories'
 import { generateSlug, estimateReadTime } from '@/lib/utils'
 import { inputClass, selectClass, labelClass, panelClass } from '@/lib/ui'
 import { Save, Globe, Eye, Upload, X, ChevronDown } from 'lucide-react'
@@ -13,6 +14,8 @@ import { Button } from '@/components/ui/Button'
 import { Toggle } from '@/components/ui/Toggle'
 import { cn } from '@/lib/utils'
 import type { Post, Category, PostFormData } from '@/types'
+
+const CUSTOM_CATEGORY = '__custom__'
 
 interface Props {
   post?: Post
@@ -41,6 +44,8 @@ export default function PostEditor({ post, categories, userId }: Props) {
   const [uploadingCover, setUploadingCover] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [titleTouched, setTitleTouched] = useState(isEditing)
+  const [useCustomCategory, setUseCustomCategory] = useState(false)
+  const [customCategoryName, setCustomCategoryName] = useState('')
 
   useEffect(() => {
     if (!titleTouched && form.title) {
@@ -88,13 +93,30 @@ export default function PostEditor({ post, categories, userId }: Props) {
       status === 'published' ? 'Publishing...' : 'Saving draft...'
     )
 
+    let categoryId: string | null = form.category_id || null
+
+    if (useCustomCategory) {
+      if (!customCategoryName.trim()) {
+        toast.error('Enter a custom category name', { id: toastId })
+        setSaving(false)
+        return
+      }
+      const result = await findOrCreateCategory(supabase, customCategoryName)
+      if ('error' in result) {
+        toast.error(result.error, { id: toastId })
+        setSaving(false)
+        return
+      }
+      categoryId = result.id
+    }
+
     const payload = {
       title: form.title.trim(),
       slug: form.slug.trim(),
       excerpt: form.excerpt.trim() || null,
       content: form.content,
       cover_image_url: form.cover_image_url.trim() || null,
-      category_id: form.category_id || null,
+      category_id: categoryId,
       status,
       featured: form.featured,
       read_time: estimateReadTime(form.content),
@@ -292,10 +314,18 @@ export default function PostEditor({ post, categories, userId }: Props) {
             <label className={labelClass}>Category</label>
             <div className="relative">
               <select
-                value={form.category_id}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, category_id: e.target.value }))
-                }
+                value={useCustomCategory ? CUSTOM_CATEGORY : form.category_id}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === CUSTOM_CATEGORY) {
+                    setUseCustomCategory(true)
+                    setForm((prev) => ({ ...prev, category_id: '' }))
+                  } else {
+                    setUseCustomCategory(false)
+                    setCustomCategoryName('')
+                    setForm((prev) => ({ ...prev, category_id: value }))
+                  }
+                }}
                 className={cn(selectClass, 'pr-9')}
               >
                 <option value="">No category</option>
@@ -304,17 +334,31 @@ export default function PostEditor({ post, categories, userId }: Props) {
                     {cat.name}
                   </option>
                 ))}
+                <option value={CUSTOM_CATEGORY}>Custom — type your own</option>
               </select>
               <ChevronDown
                 size={14}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
               />
             </div>
-            {categories.length === 0 && (
+            {useCustomCategory && (
+              <input
+                value={customCategoryName}
+                onChange={(e) => setCustomCategoryName(e.target.value)}
+                placeholder="e.g. Productivity, Travel, Design..."
+                className={cn(inputClass, 'mt-3')}
+                autoFocus
+              />
+            )}
+            {useCustomCategory && (
+              <p className="text-xs text-zinc-600 mt-2 leading-relaxed">
+                Kategori baru akan dibuat otomatis saat post disimpan.
+              </p>
+            )}
+            {categories.length === 0 && !useCustomCategory && (
               <p className="text-xs text-amber-500/90 mt-2 leading-relaxed">
-                Belum ada kategori. Jalankan{' '}
-                <code className="bg-zinc-800 px-1 rounded">supabase/schema.sql</code>{' '}
-                di Supabase SQL Editor, lalu refresh halaman ini.
+                Belum ada kategori. Pilih &quot;Custom&quot; atau jalankan{' '}
+                <code className="bg-zinc-800 px-1 rounded">supabase/schema.sql</code>.
               </p>
             )}
           </div>

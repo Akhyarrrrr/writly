@@ -125,10 +125,10 @@ export default function AdminShell({ children, profile, user }: Props) {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-500 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-500 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition cursor-pointer"
         >
-          <LogOut size={14} />
-          Sign out
+          <span>Sign out</span>
+          <LogOut size={14} className="shrink-0" />
         </button>
       </div>
     </div>
@@ -165,7 +165,7 @@ export default function AdminShell({ children, profile, user }: Props) {
           <WritlyLogo size={24} href="/admin" />
         </div>
 
-        <main className="flex-1 p-4 md:p-8 max-w-5xl w-full mx-auto">
+        <main className="flex-1 p-4 md:p-8 max-w-6xl w-full mx-auto">
           <AnimatedSection>{children}</AnimatedSection>
         </main>
       </div>

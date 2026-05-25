@@ -74,7 +74,7 @@ export default function SettingsClient({ profile, userId, user }: Props) {
   }
 
   return (
-    <div className="w-full max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
       <div className={panelClass('p-6 flex items-center gap-5')}>
         <div className="w-16 h-16 rounded-full bg-zinc-800 ring-1 ring-zinc-700 flex items-center justify-center font-display text-2xl font-semibold text-zinc-200 shrink-0">
           {displayName[0].toUpperCase()}
@@ -90,8 +90,8 @@ export default function SettingsClient({ profile, userId, user }: Props) {
         </div>
       </div>
 
-      <div className="max-w-2xl space-y-6">
-        <form onSubmit={handleSave} className={panelClass('p-6 space-y-5')}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <form onSubmit={handleSave} className={panelClass('p-6 space-y-5 h-full')}>
           <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4">
             <User size={16} className="text-zinc-500" />
             <h2 className="font-display text-sm font-semibold text-white tracking-tight">
@@ -161,8 +161,8 @@ export default function SettingsClient({ profile, userId, user }: Props) {
           </Button>
         </form>
 
-        <div className={panelClass('p-5')}>
-          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4 mb-4">
+        <div className={panelClass('p-6 h-full')}>
+          <div className="flex items-center gap-2 border-b border-zinc-800/80 pb-4 mb-5">
             <Mail size={16} className="text-zinc-500" />
             <h2 className="font-display text-sm font-semibold text-white tracking-tight">
               Account
@@ -174,8 +174,8 @@ export default function SettingsClient({ profile, userId, user }: Props) {
             disabled
             className={`${inputClass} opacity-60 cursor-not-allowed`}
           />
-          <p className="text-xs text-zinc-600 mt-2">
-            Dikelola oleh Supabase Auth.
+          <p className="text-xs text-zinc-600 mt-3 leading-relaxed">
+            Email dikelola oleh Supabase Auth dan tidak dapat diubah dari sini.
           </p>
         </div>
       </div>
