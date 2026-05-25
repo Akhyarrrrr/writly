@@ -67,7 +67,7 @@ export default async function LandingPage() {
             <br />
             <FlipWords
               words={['Share your story.', 'Reach your readers.', 'Own your words.']}
-              className="text-5xl sm:text-6xl lg:text-[4.25rem] font-semibold text-zinc-400"
+              className="text-5xl sm:text-6xl lg:text-[4.25rem] font-semibold text-zinc-400 pb-5"
             />
           </h1>
 
