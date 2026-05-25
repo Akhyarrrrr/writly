@@ -27,7 +27,10 @@ export const metadata: Metadata = {
   authors: [{ name: 'Writly' }],
   creator: 'Writly',
   icons: {
-    icon: [{ url: '/logo.png', type: 'image/png' }],
+    icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/logo.png', type: 'image/png' },
+    ],
     apple: [{ url: '/logo.png', type: 'image/png' }],
   },
   openGraph: {
