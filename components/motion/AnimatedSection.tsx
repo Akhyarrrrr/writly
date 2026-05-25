@@ -2,6 +2,7 @@
 
 import { FadeIn, Stagger, StaggerItem } from './FadeIn'
 
+/** Wraps a page section with scroll-triggered fade-up */
 export function AnimatedSection({
   children,
   className,
@@ -12,7 +13,7 @@ export function AnimatedSection({
   delay?: number
 }) {
   return (
-    <FadeIn className={className} delay={delay}>
+    <FadeIn className={className} delay={delay} y={28}>
       {children}
     </FadeIn>
   )
