@@ -1,26 +1,172 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@layer base {
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --accent: #3b82f6;
+    --muted: #71717a;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    @apply bg-zinc-950 text-zinc-100;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  * {
+    @apply border-zinc-800;
+  }
+
+  ::selection {
+    @apply bg-blue-500/25 text-white;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-700 rounded-full hover:bg-zinc-600;
+  }
+
+  select,
+  textarea {
+    @apply text-zinc-100;
+  }
+
+  select option {
+    background-color: #18181b;
+    color: #fafafa;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+  --animate-spotlight: spotlight 2s ease 0.75s 1 forwards;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Subtle editorial grain */
+body::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-72%, -62%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -40%) scale(1);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.tiptap-editor .ProseMirror {
+  @apply outline-none min-h-[400px] text-zinc-100;
+}
+
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-zinc-600;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap-editor .ProseMirror h1 {
+  @apply text-3xl font-bold mt-8 mb-4 text-white font-display;
+}
+.tiptap-editor .ProseMirror h2 {
+  @apply text-2xl font-bold mt-6 mb-3 text-white font-display;
+}
+.tiptap-editor .ProseMirror h3 {
+  @apply text-xl font-semibold mt-5 mb-2 text-white font-display;
+}
+.tiptap-editor .ProseMirror p {
+  @apply text-zinc-300 leading-relaxed mb-4;
+}
+.tiptap-editor .ProseMirror a {
+  @apply text-blue-400 underline underline-offset-2 hover:text-blue-300;
+}
+.tiptap-editor .ProseMirror ul {
+  @apply list-disc pl-6 mb-4 text-zinc-300;
+}
+.tiptap-editor .ProseMirror ol {
+  @apply list-decimal pl-6 mb-4 text-zinc-300;
+}
+.tiptap-editor .ProseMirror li {
+  @apply mb-1;
+}
+.tiptap-editor .ProseMirror blockquote {
+  @apply border-l-2 border-zinc-600 pl-4 italic text-zinc-400 my-4;
+}
+.tiptap-editor .ProseMirror pre {
+  @apply bg-zinc-900 rounded-lg p-4 my-4 overflow-x-auto font-mono text-sm border border-zinc-800;
+}
+.tiptap-editor .ProseMirror code {
+  @apply bg-zinc-800 text-zinc-200 px-1.5 py-0.5 rounded text-sm font-mono;
+}
+.tiptap-editor .ProseMirror pre code {
+  @apply bg-transparent text-zinc-300 p-0;
+}
+.tiptap-editor .ProseMirror img {
+  @apply rounded-lg my-6 max-w-full;
+}
+.tiptap-editor .ProseMirror hr {
+  @apply border-zinc-800 my-6;
+}
+
+.blog-content {
+  @apply prose prose-invert prose-lg max-w-none;
+  @apply prose-headings:text-white prose-headings:font-display prose-headings:tracking-tight;
+  @apply prose-p:text-zinc-300 prose-p:leading-relaxed;
+  @apply prose-a:text-blue-400 prose-a:no-underline hover:prose-a:text-blue-300;
+  @apply prose-strong:text-white;
+  @apply prose-code:text-zinc-200 prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none;
+  @apply prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800;
+  @apply prose-blockquote:border-zinc-600 prose-blockquote:text-zinc-400;
+  @apply prose-img:rounded-lg;
+  @apply prose-hr:border-zinc-800;
 }

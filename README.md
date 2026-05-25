@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Writly
 
-## Getting Started
+Platform blog modern untuk menulis, menerbitkan, dan berbagi artikel. Dibangun dengan Next.js, Supabase, dan editor Tiptap — UI gelap minimalis ala Linear/Vercel.
 
-First, run the development server:
+![Writly](./public/logo.png)
+
+## Fitur
+
+- **Landing** — hero animasi, bagian About, post unggulan
+- **Blog publik** — daftar artikel, filter kategori, halaman detail SEO
+- **Admin** — dashboard, editor kaya teks, draft/publish, pengaturan profil
+- **Auth** — registrasi & login via Supabase Auth
+- **Keamanan** — Row Level Security (RLS) di Postgres
+
+## Tech stack
+
+| Lapisan | Teknologi |
+|--------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Styling | Tailwind CSS v4 |
+| Database & Auth | Supabase |
+| Editor | Tiptap |
+| Animasi | Framer Motion |
+
+## Persiapan
+
+### 1. Clone & install
+
+```bash
+git clone https://github.com/Akhyarrrrr/writly.git
+cd writly
+npm install
+```
+
+### 2. Supabase
+
+1. Buat proyek di [supabase.com](https://supabase.com)
+2. Buka **SQL Editor** → jalankan seluruh isi `supabase/schema.sql` (sekali saja untuk setup baru)
+3. Di **Authentication → URL Configuration**, tambahkan redirect URL:
+   - `http://localhost:3000/**`
+   - URL production kamu (mis. `https://writly.vercel.app/**`)
+
+### 3. Environment
+
+Salin `.env.local.example` ke `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Jalankan
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) → daftar akun → tulis post pertama di `/admin/posts/new`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Push repo ke GitHub
+2. Import proyek di [vercel.com](https://vercel.com)
+3. Set environment variables yang sama seperti `.env.local`
+4. Set `NEXT_PUBLIC_APP_URL` ke URL production
+5. Tambahkan URL production di Supabase Auth redirect
 
-## Learn More
+## Struktur proyek
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/              Halaman (landing, blog, auth, admin)
+components/       UI, editor, blog, motion
+lib/              Supabase client, posts, utils
+public/logo.png   Logo & favicon
+supabase/         schema.sql (database + RLS)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Lisensi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Proyek portofolio — bebas dipakai sebagai referensi.

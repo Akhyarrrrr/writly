@@ -23,6 +23,12 @@
 # misc
 .DS_Store
 *.pem
+.cursor/
+design-system/
+
+# python caches (dev tools)
+__pycache__/
+*.pyc
 
 # debug
 npm-debug.log*
