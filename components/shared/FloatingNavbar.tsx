@@ -95,7 +95,7 @@ export function FloatingNavbar({
           href="/login"
           className="text-sm px-4 py-1.5 ml-0.5 bg-zinc-100 text-zinc-950 rounded-full font-medium hover:bg-white transition duration-200 cursor-pointer"
         >
-          Sign in
+          Login
         </Link>
       )}
     </motion.nav>
