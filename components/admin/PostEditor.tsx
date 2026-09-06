@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -46,12 +46,6 @@ export default function PostEditor({ post, categories, userId }: Props) {
   const [titleTouched, setTitleTouched] = useState(isEditing)
   const [useCustomCategory, setUseCustomCategory] = useState(false)
   const [customCategoryName, setCustomCategoryName] = useState('')
-
-  useEffect(() => {
-    if (!titleTouched && form.title) {
-      setForm((prev) => ({ ...prev, slug: generateSlug(form.title) }))
-    }
-  }, [form.title, titleTouched])
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -256,9 +250,14 @@ export default function PostEditor({ post, categories, userId }: Props) {
 
           <input
             value={form.title}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, title: e.target.value }))
-            }
+            onChange={(e) => {
+              const title = e.target.value
+              setForm((prev) => ({
+                ...prev,
+                title,
+                slug: titleTouched ? prev.slug : generateSlug(title),
+              }))
+            }}
             placeholder="Post title"
             className="w-full bg-transparent font-display text-3xl font-semibold text-white placeholder-zinc-700 outline-none tracking-tight"
           />

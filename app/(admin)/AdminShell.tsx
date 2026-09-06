@@ -43,35 +43,24 @@ interface Props {
   user: User
 }
 
-export default function AdminShell({ children, profile, user }: Props) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const displayName = getDisplayName(profile, user)
+interface SidebarProps {
+  pathname: string
+  displayName: string
+  email?: string
+  onNavigate: () => void
+  onLogout: () => void
+}
 
-  async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    toast.success('Signed out')
-    router.push('/login')
-    router.refresh()
+function isActive(pathname: string, href: string, opts?: { exact?: boolean; postsList?: boolean }) {
+  if (opts?.exact) return pathname === href
+  if (opts?.postsList) {
+    return pathname === '/admin/posts' || /^\/admin\/posts\/[^/]+\/edit$/.test(pathname)
   }
+  return pathname === href
+}
 
-  function isActive(
-    href: string,
-    opts?: { exact?: boolean; postsList?: boolean }
-  ) {
-    if (opts?.exact) return pathname === href
-    if (opts?.postsList) {
-      return (
-        pathname === '/admin/posts' ||
-        /^\/admin\/posts\/[^/]+\/edit$/.test(pathname)
-      )
-    }
-    return pathname === href
-  }
-
-  const Sidebar = () => (
+function Sidebar({ pathname, displayName, email, onNavigate, onLogout }: SidebarProps) {
+  return (
     <div className="flex flex-col h-full">
       <WritlyLogo
         size={28}
@@ -82,12 +71,12 @@ export default function AdminShell({ children, profile, user }: Props) {
 
       <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon, exact, postsList }) => {
-          const active = isActive(href, { exact, postsList })
+          const active = isActive(pathname, href, { exact, postsList })
           return (
             <Link
               key={href}
               href={href}
-              onClick={() => setSidebarOpen(false)}
+              onClick={onNavigate}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition duration-200 cursor-pointer ${
                 active
                   ? 'bg-zinc-800 text-white font-medium'
@@ -116,15 +105,13 @@ export default function AdminShell({ children, profile, user }: Props) {
             {displayName[0].toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">
-              {displayName}
-            </p>
-            <p className="text-xs text-zinc-500 truncate">{user.email}</p>
+            <p className="text-sm font-medium text-white truncate">{displayName}</p>
+            <p className="text-xs text-zinc-500 truncate">{email}</p>
           </div>
         </div>
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={onLogout}
           className="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-500 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition cursor-pointer"
         >
           <span>Sign out</span>
@@ -133,11 +120,26 @@ export default function AdminShell({ children, profile, user }: Props) {
       </div>
     </div>
   )
+}
+
+export default function AdminShell({ children, profile, user }: Props) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const displayName = getDisplayName(profile, user)
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    toast.success('Signed out')
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 flex">
       <div className="hidden md:flex flex-col w-60 border-r border-zinc-800/80 bg-zinc-950 shrink-0 fixed h-full">
-        <Sidebar />
+        <Sidebar pathname={pathname} displayName={displayName} email={user.email} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
       </div>
 
       {sidebarOpen && (
@@ -148,7 +150,7 @@ export default function AdminShell({ children, profile, user }: Props) {
             role="presentation"
           />
           <div className="relative w-60 bg-zinc-950 border-r border-zinc-800">
-            <Sidebar />
+            <Sidebar pathname={pathname} displayName={displayName} email={user.email} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </div>
         </div>
       )}

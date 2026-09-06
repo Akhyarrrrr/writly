@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -20,33 +20,24 @@ export function FloatingNavbar({
   isLoggedIn?: boolean
 }) {
   const pathname = usePathname()
-  const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
+  const lastScrollY = useRef(0)
   const reduce = useReducedMotion()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY
-      setVisible(y < lastScrollY || y < 80)
-      setLastScrollY(y)
+      setVisible(y < lastScrollY.current || y < 80)
+      lastScrollY.current = y
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [lastScrollY])
+  }, [])
 
   return (
     <motion.nav
       initial={reduce ? false : { y: -24, opacity: 0 }}
-      animate={
-        mounted
-          ? { y: visible ? 0 : -96, opacity: visible ? 1 : 0 }
-          : { y: 0, opacity: 1 }
-      }
+      animate={{ y: visible ? 0 : -96, opacity: visible ? 1 : 0 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         'fixed top-4 left-1/2 -translate-x-1/2 z-50',

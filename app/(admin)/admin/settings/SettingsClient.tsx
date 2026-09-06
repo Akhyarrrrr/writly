@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -34,10 +34,6 @@ export default function SettingsClient({ profile, userId, user }: Props) {
 
   const [form, setForm] = useState(() => profileToForm(profile, user))
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    setForm(profileToForm(profile, user))
-  }, [profile, user])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
