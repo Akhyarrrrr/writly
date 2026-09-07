@@ -3,7 +3,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { formatDate } from '@/lib/utils'
 import { attachProfiles } from '@/lib/posts'
-import { Clock, ArrowUpRight } from 'lucide-react'
+import { Clock, ArrowUpRight, Search } from 'lucide-react'
 import CategoryBadge from '@/components/blog/CategoryBadge'
 
 export const metadata: Metadata = {
@@ -14,9 +14,11 @@ export const metadata: Metadata = {
 export default async function BlogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>
+  searchParams: Promise<{ category?: string; q?: string; page?: string }>
 }) {
-  const { category } = await searchParams
+  const { category, q = '', page: pageParam = '1' } = await searchParams
+  const page = Math.max(1, Number.parseInt(pageParam, 10) || 1)
+  const pageSize = 10
   const supabase = await createClient()
 
   const { data: categories } = await supabase
@@ -26,7 +28,7 @@ export default async function BlogPage({
 
   let query = supabase
     .from('posts')
-    .select('*, categories(name, slug, color)')
+    .select('*, categories(name, slug, color)', { count: 'exact' })
     .eq('status', 'published')
     .order('published_at', { ascending: false })
 
@@ -34,9 +36,11 @@ export default async function BlogPage({
     const cat = categories?.find((c) => c.slug === category)
     if (cat) query = query.eq('category_id', cat.id)
   }
+  if (q.trim()) query = query.ilike('title', `%${q.trim().replace(/[%_]/g, '\\$&')}%`)
 
-  const { data: rawPosts } = await query
+  const { data: rawPosts, count } = await query.range((page - 1) * pageSize, page * pageSize - 1)
   const posts = rawPosts ? await attachProfiles(supabase, rawPosts) : []
+  const totalPages = Math.max(1, Math.ceil((count || 0) / pageSize))
 
   return (
     <div className="max-w-3xl mx-auto px-4 pt-28 pb-24">
@@ -52,9 +56,19 @@ export default async function BlogPage({
         </p>
       </header>
 
+      <form action="/blog" className="mb-6 flex gap-2" role="search">
+        <label htmlFor="blog-search" className="sr-only">Search articles</label>
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <input id="blog-search" name="q" defaultValue={q} placeholder="Search articles" className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-900 pl-10 pr-3 text-sm text-white placeholder:text-zinc-500" />
+        </div>
+        {category && <input type="hidden" name="category" value={category} />}
+        <button className="rounded-lg bg-zinc-100 px-4 text-sm font-medium text-zinc-950">Search</button>
+      </form>
+
       <div className="flex flex-wrap gap-2 mb-12">
         <Link
-          href="/blog"
+          href={q ? `/blog?q=${encodeURIComponent(q)}` : '/blog'}
           className={`text-sm px-3.5 py-1.5 rounded-full transition duration-200 cursor-pointer border ${
             !category
               ? 'bg-zinc-100 text-zinc-950 border-zinc-100'
@@ -66,7 +80,7 @@ export default async function BlogPage({
         {categories?.map((cat) => (
           <Link
             key={cat.id}
-            href={`/blog?category=${cat.slug}`}
+            href={`/blog?category=${cat.slug}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
             className={`text-sm px-3.5 py-1.5 rounded-full transition duration-200 border cursor-pointer ${
               category === cat.slug
                 ? 'bg-zinc-800 text-white border-zinc-600'
@@ -147,8 +161,8 @@ export default async function BlogPage({
                         </p>
                       )}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-600">
-                        {profile?.full_name && (
-                          <span className="text-zinc-500">{profile.full_name}</span>
+                        {profile?.full_name && profile.username && (
+                          <Link href={`/authors/${profile.username}`} className="text-zinc-400 hover:text-white">{profile.full_name}</Link>
                         )}
                         <span>
                           {formatDate(
@@ -166,6 +180,14 @@ export default async function BlogPage({
             )
           })}
         </ul>
+      )}
+
+      {totalPages > 1 && (
+        <nav aria-label="Blog pagination" className="mt-10 flex items-center justify-between border-t border-zinc-800 pt-6 text-sm">
+          {page > 1 ? <Link href={`/blog?page=${page - 1}${category ? `&category=${category}` : ''}${q ? `&q=${encodeURIComponent(q)}` : ''}`} className="text-zinc-300 hover:text-white">Previous</Link> : <span />}
+          <span className="text-zinc-500">Page {page} of {totalPages}</span>
+          {page < totalPages ? <Link href={`/blog?page=${page + 1}${category ? `&category=${category}` : ''}${q ? `&q=${encodeURIComponent(q)}` : ''}`} className="text-zinc-300 hover:text-white">Next</Link> : <span />}
+        </nav>
       )}
     </div>
   )

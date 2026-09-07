@@ -4,7 +4,7 @@ import { MetadataRoute } from 'next'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient()
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || 'https://writly.vercel.app'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://writly.akhyar.dev'
 
   const { data: posts } = await supabase
     .from('posts')

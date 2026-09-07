@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -25,7 +25,7 @@ interface Props {
 
 export default function PostEditor({ post, categories, userId }: Props) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const isEditing = !!post
 
   const [form, setForm] = useState<PostFormData>({
@@ -46,6 +46,84 @@ export default function PostEditor({ post, categories, userId }: Props) {
   const [titleTouched, setTitleTouched] = useState(isEditing)
   const [useCustomCategory, setUseCustomCategory] = useState(false)
   const [customCategoryName, setCustomCategoryName] = useState('')
+  const [currentPostId, setCurrentPostId] = useState(post?.id || '')
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const [dirty, setDirty] = useState(false)
+  const hydrated = useRef(false)
+  const lastPersisted = useRef(JSON.stringify(form))
+  const recoveryKey = `writly:draft:${post?.id || 'new'}`
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(recoveryKey)
+    if (raw) {
+      try {
+        const recovery = JSON.parse(raw) as { form: PostFormData; savedAt: string }
+        if (!post || new Date(recovery.savedAt) > new Date(post.updated_at)) {
+          window.setTimeout(() => {
+            setForm(recovery.form)
+            toast.info('Recovered unsaved writing from this browser.')
+          }, 0)
+        }
+      } catch {
+        window.localStorage.removeItem(recoveryKey)
+      }
+    }
+    hydrated.current = true
+  }, [post, recoveryKey])
+
+  useEffect(() => {
+    if (!hydrated.current) return
+    const serialized = JSON.stringify(form)
+    const changed = serialized !== lastPersisted.current
+    setDirty(changed)
+    if (changed) {
+      window.localStorage.setItem(recoveryKey, JSON.stringify({ form, savedAt: new Date().toISOString() }))
+      setSaveState('idle')
+    }
+  }, [form, recoveryKey])
+
+  useEffect(() => {
+    function warnBeforeLeaving(event: BeforeUnloadEvent) {
+      if (!dirty) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warnBeforeLeaving)
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving)
+  }, [dirty])
+
+  useEffect(() => {
+    if (!dirty || !currentPostId || form.status !== 'draft' || useCustomCategory) return
+    if (!form.title.trim() || !form.slug.trim()) return
+
+    const timer = window.setTimeout(async () => {
+      setSaveState('saving')
+      const { error } = await supabase
+        .from('posts')
+        .update({
+          title: form.title.trim(),
+          slug: form.slug.trim(),
+          excerpt: form.excerpt.trim() || null,
+          content: form.content,
+          cover_image_url: form.cover_image_url.trim() || null,
+          category_id: form.category_id || null,
+          featured: form.featured,
+          read_time: estimateReadTime(form.content),
+        })
+        .eq('id', currentPostId)
+        .eq('author_id', userId)
+
+      if (error) setSaveState('failed')
+      else {
+        lastPersisted.current = JSON.stringify(form)
+        window.localStorage.removeItem(recoveryKey)
+        setDirty(false)
+        setSaveState('saved')
+      }
+    }, 1500)
+
+    return () => window.clearTimeout(timer)
+  }, [currentPostId, dirty, form, recoveryKey, supabase, useCustomCategory, userId])
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -68,7 +146,7 @@ export default function PostEditor({ post, categories, userId }: Props) {
     setUploadingCover(false)
   }
 
-  async function handleSave(status: 'draft' | 'published') {
+  async function saveDraft(reviewAfter = false) {
     if (!form.title.trim()) {
       toast.error('Title is required')
       return
@@ -83,9 +161,7 @@ export default function PostEditor({ post, categories, userId }: Props) {
     }
 
     setSaving(true)
-    const toastId = toast.loading(
-      status === 'published' ? 'Publishing...' : 'Saving draft...'
-    )
+    const toastId = toast.loading(reviewAfter ? 'Preparing review...' : 'Saving draft...')
 
     let categoryId: string | null = form.category_id || null
 
@@ -111,39 +187,49 @@ export default function PostEditor({ post, categories, userId }: Props) {
       content: form.content,
       cover_image_url: form.cover_image_url.trim() || null,
       category_id: categoryId,
-      status,
+      status: 'draft' as const,
       featured: form.featured,
       read_time: estimateReadTime(form.content),
-      published_at:
-        status === 'published'
-          ? new Date().toISOString()
-          : post?.published_at || null,
+      published_at: post?.published_at || null,
       author_id: userId,
     }
 
-    const { data, error } = isEditing
+    const { data, error } = currentPostId
       ? await supabase
           .from('posts')
           .update(payload)
-          .eq('id', post.id)
+          .eq('id', currentPostId)
+          .eq('author_id', userId)
           .select()
           .single()
       : await supabase.from('posts').insert(payload).select().single()
 
     if (error) {
       const msg = error.message.includes('permission denied')
-        ? 'Akses ditolak. Jalankan supabase/schema.sql di Supabase SQL Editor.'
+        ? 'You do not have permission to save this post.'
         : error.message.includes('unique')
           ? 'Slug already exists. Try a different one.'
           : error.message
       toast.error(msg, { id: toastId })
     } else {
-      setForm((prev) => ({ ...prev, status }))
-      toast.success(
-        status === 'published' ? 'Post published!' : 'Draft saved',
-        { id: toastId }
-      )
-      if (!isEditing) router.push(`/admin/posts/${data.id}/edit`)
+      const savedForm = { ...form, status: 'draft' as const }
+      setForm(savedForm)
+      setCurrentPostId(data.id)
+      lastPersisted.current = JSON.stringify(savedForm)
+      window.localStorage.removeItem(recoveryKey)
+      setDirty(false)
+      setSaveState('saved')
+      await supabase.from('post_revisions').insert({
+        post_id: data.id,
+        author_id: userId,
+        title: data.title,
+        excerpt: data.excerpt,
+        content: data.content,
+        cover_image_url: data.cover_image_url,
+      })
+      toast.success(reviewAfter ? 'Draft ready for review.' : 'Draft saved', { id: toastId })
+      if (reviewAfter) router.push(`/admin/posts/${data.id}/review`)
+      else if (!currentPostId) router.replace(`/admin/posts/${data.id}/edit`)
       else router.refresh()
     }
     setSaving(false)
@@ -179,6 +265,12 @@ export default function PostEditor({ post, categories, userId }: Props) {
               })}
             </p>
           )}
+          <p className="mt-1 text-xs text-zinc-500" aria-live="polite">
+            {saveState === 'saving' && 'Saving changes...'}
+            {saveState === 'saved' && 'All changes saved'}
+            {saveState === 'failed' && 'Autosave failed. Your browser recovery copy is still available.'}
+            {saveState === 'idle' && dirty && 'Unsaved changes'}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {form.status === 'published' && form.slug && (
@@ -202,15 +294,15 @@ export default function PostEditor({ post, categories, userId }: Props) {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => handleSave('draft')}
+            onClick={() => saveDraft(false)}
             disabled={saving}
           >
             <Save size={14} />
             Save draft
           </Button>
-          <Button size="sm" onClick={() => handleSave('published')} disabled={saving}>
+          <Button size="sm" onClick={() => saveDraft(true)} disabled={saving}>
             <Globe size={14} />
-            {form.status === 'published' ? 'Update' : 'Publish'}
+            Review & publish
           </Button>
         </div>
       </div>
@@ -226,6 +318,7 @@ export default function PostEditor({ post, categories, userId }: Props) {
               />
               <button
                 type="button"
+                aria-label="Remove cover image"
                 onClick={() =>
                   setForm((prev) => ({ ...prev, cover_image_url: '' }))
                 }
@@ -249,6 +342,8 @@ export default function PostEditor({ post, categories, userId }: Props) {
           )}
 
           <input
+            id="post-title"
+            aria-label="Post title"
             value={form.title}
             onChange={(e) => {
               const title = e.target.value
@@ -263,6 +358,8 @@ export default function PostEditor({ post, categories, userId }: Props) {
           />
 
           <textarea
+            id="post-excerpt"
+            aria-label="Post excerpt"
             value={form.excerpt}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, excerpt: e.target.value }))
@@ -291,8 +388,9 @@ export default function PostEditor({ post, categories, userId }: Props) {
 
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <div className={panelClass()}>
-            <label className={labelClass}>URL slug</label>
+            <label htmlFor="post-slug" className={labelClass}>URL slug</label>
             <input
+              id="post-slug"
               value={form.slug}
               onChange={(e) => {
                 setTitleTouched(true)
@@ -310,9 +408,10 @@ export default function PostEditor({ post, categories, userId }: Props) {
           </div>
 
           <div className={panelClass()}>
-            <label className={labelClass}>Category</label>
+            <label htmlFor="post-category" className={labelClass}>Category</label>
             <div className="relative">
               <select
+                id="post-category"
                 value={useCustomCategory ? CUSTOM_CATEGORY : form.category_id}
                 onChange={(e) => {
                   const value = e.target.value
@@ -342,6 +441,8 @@ export default function PostEditor({ post, categories, userId }: Props) {
             </div>
             {useCustomCategory && (
               <input
+                id="custom-category"
+                aria-label="Custom category name"
                 value={customCategoryName}
                 onChange={(e) => setCustomCategoryName(e.target.value)}
                 placeholder="e.g. Productivity, Travel, Design..."
@@ -372,8 +473,9 @@ export default function PostEditor({ post, categories, userId }: Props) {
           </div>
 
           <div className={panelClass()}>
-            <label className={labelClass}>Cover URL</label>
+            <label htmlFor="cover-url" className={labelClass}>Cover URL</label>
             <input
+              id="cover-url"
               value={form.cover_image_url}
               onChange={(e) =>
                 setForm((prev) => ({

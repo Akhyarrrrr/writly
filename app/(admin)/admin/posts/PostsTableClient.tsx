@@ -36,34 +36,6 @@ export default function PostsTableClient({
     }
   }
 
-  async function handleToggleStatus(id: string, current: string) {
-    const newStatus: Post['status'] =
-      current === 'published' ? 'draft' : 'published'
-    const supabase = createClient()
-    const updates: {
-      status: Post['status']
-      published_at?: string
-    } = { status: newStatus }
-    if (newStatus === 'published')
-      updates.published_at = new Date().toISOString()
-
-    const { error } = await supabase.from('posts').update(updates).eq('id', id)
-    if (error) {
-      toast.error(
-        error.message.includes('permission')
-          ? 'Akses ditolak. Jalankan supabase/schema.sql di Supabase SQL Editor.'
-          : 'Failed to update status'
-      )
-    } else {
-      setPosts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-      )
-      toast.success(
-        newStatus === 'published' ? 'Post published!' : 'Moved to draft'
-      )
-    }
-  }
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6 gap-4">
@@ -178,20 +150,16 @@ export default function PostsTableClient({
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleToggleStatus(post.id, post.status)
-                        }
+                      <span
                         className={cn(
-                          'text-xs px-2.5 py-1 rounded-md font-medium transition cursor-pointer capitalize',
+                          'inline-flex text-xs px-2.5 py-1 rounded-md font-medium capitalize',
                           post.status === 'published'
-                            ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                            : 'bg-zinc-900 text-zinc-500 border border-zinc-800 hover:border-zinc-600'
+                            ? 'bg-zinc-800 text-zinc-300'
+                            : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
                         )}
                       >
                         {post.status}
-                      </button>
+                      </span>
                     </td>
                     <td className="px-5 py-4 hidden md:table-cell">
                       <span className="text-sm text-zinc-500 flex items-center gap-1">
@@ -199,11 +167,12 @@ export default function PostsTableClient({
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                      <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition">
                         {post.status === 'published' && (
                           <Link
                             href={`/blog/${post.slug}`}
                             target="_blank"
+                            aria-label={`View ${post.title}`}
                             className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition cursor-pointer"
                           >
                             <Globe size={14} />
@@ -211,12 +180,14 @@ export default function PostsTableClient({
                         )}
                         <Link
                           href={`/admin/posts/${post.id}/edit`}
+                          aria-label={`Edit ${post.title}`}
                           className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition cursor-pointer"
                         >
                           <Edit2 size={14} />
                         </Link>
                         <button
                           type="button"
+                          aria-label={`Delete ${post.title}`}
                           onClick={() => handleDelete(post.id, post.title)}
                           className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-950/40 rounded-md transition cursor-pointer"
                         >

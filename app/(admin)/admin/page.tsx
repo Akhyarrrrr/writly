@@ -17,6 +17,7 @@ export default async function AdminDashboard() {
     { count: drafts },
     { data: recentPosts },
     { data: topPosts },
+    { data: viewRows },
   ] = await Promise.all([
     supabase
       .from('posts')
@@ -45,10 +46,10 @@ export default async function AdminDashboard() {
       .eq('status', 'published')
       .order('view_count', { ascending: false })
       .limit(5),
+    supabase.from('posts').select('view_count').eq('author_id', user!.id),
   ])
 
-  const totalViews =
-    recentPosts?.reduce((acc, p) => acc + (p.view_count || 0), 0) || 0
+  const totalViews = viewRows?.reduce((total, post) => total + (post.view_count || 0), 0) || 0
 
   const stats = [
     { label: 'Total posts', value: totalPosts || 0, icon: FileText },

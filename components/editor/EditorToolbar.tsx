@@ -44,6 +44,8 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={title}
+      aria-pressed={active === undefined ? undefined : active}
       className={`p-1.5 rounded-md transition duration-200 text-sm cursor-pointer ${
         active
           ? 'bg-zinc-700 text-white'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -126,7 +126,31 @@ export default function AdminShell({ children, profile, user }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLDivElement>(null)
   const displayName = getDisplayName(profile, user)
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const trigger = menuButtonRef.current
+    const firstLink = drawerRef.current?.querySelector<HTMLElement>('a, button')
+    firstLink?.focus()
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setSidebarOpen(false)
+      if (event.key !== 'Tab' || !drawerRef.current) return
+      const focusable = [...drawerRef.current.querySelectorAll<HTMLElement>('a, button')]
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      trigger?.focus()
+    }
+  }, [sidebarOpen])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -149,7 +173,7 @@ export default function AdminShell({ children, profile, user }: Props) {
             onClick={() => setSidebarOpen(false)}
             role="presentation"
           />
-          <div className="relative w-60 bg-zinc-950 border-r border-zinc-800">
+          <div ref={drawerRef} role="dialog" aria-modal="true" aria-label="Admin navigation" className="relative w-60 bg-zinc-950 border-r border-zinc-800">
             <Sidebar pathname={pathname} displayName={displayName} email={user.email} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </div>
         </div>
@@ -158,7 +182,9 @@ export default function AdminShell({ children, profile, user }: Props) {
       <div className="flex-1 md:ml-60 flex flex-col min-h-screen">
         <div className="md:hidden flex items-center gap-3 px-4 h-14 border-b border-zinc-800/80 bg-zinc-950 sticky top-0 z-10">
           <button
+            ref={menuButtonRef}
             type="button"
+            aria-label="Open admin navigation"
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition cursor-pointer"
           >

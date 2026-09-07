@@ -3,7 +3,7 @@ export const SITE_TAGLINE = 'Tulis. Terbitkan. Bagikan ceritamu.'
 export const SITE_DESCRIPTION =
   'Writly adalah platform blog modern untuk menulis, menerbitkan, dan berbagi artikel — editor kaya teks, blog publik SEO-ready, dan dashboard admin yang rapi.'
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_APP_URL || 'https://writly.vercel.app'
+  process.env.NEXT_PUBLIC_APP_URL || 'https://writly.akhyar.dev'
 
 export const NAV_LINKS = [
   { label: 'About', href: '/#about' },

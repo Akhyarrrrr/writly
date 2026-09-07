@@ -37,11 +37,12 @@ export default function LoginPage() {
       <p className="text-sm text-zinc-500 mb-6">Continue to your dashboard</p>
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className={`${labelClass} normal-case tracking-normal text-zinc-400`}>
+          <label htmlFor="login-email" className={`${labelClass} normal-case tracking-normal text-zinc-400`}>
             Email
           </label>
           <input
             type="email"
+            id="login-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -50,11 +51,12 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label className={`${labelClass} normal-case tracking-normal text-zinc-400`}>
+          <label htmlFor="login-password" className={`${labelClass} normal-case tracking-normal text-zinc-400`}>
             Password
           </label>
           <input
             type="password"
+            id="login-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -66,6 +68,9 @@ export default function LoginPage() {
           {loading ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>
+      <p className="mt-4 text-center text-sm">
+        <Link href="/forgot-password" className="text-zinc-400 hover:text-white">Forgot password?</Link>
+      </p>
       <p className="text-center text-sm text-zinc-500 mt-4">
         No account?{' '}
         <Link
